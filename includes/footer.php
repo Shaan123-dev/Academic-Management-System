@@ -1,9 +1,14 @@
-</div>
+<?php
+declare(strict_types=1);
+?>
+</main>
 
-<footer class="footer">
-    <p>&copy; <?php echo date('Y'); ?> Academic Management Portal. All rights reserved.</p>
+<footer class="site-footer">
+    <div class="container">
+        <p>&copy; <?= e(current_year()) ?> Marks Mafias Academic Management Portal. All rights reserved.</p>
+    </div>
 </footer>
 
-<script src="/AMS/assets/js/script.js"></script>
+<script src="<?= BASE_URL ?>/assets/js/script.js"></script>
 </body>
 </html>
