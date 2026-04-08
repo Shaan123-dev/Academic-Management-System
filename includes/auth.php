@@ -11,6 +11,16 @@ function require_login()
     }
 }
 
+function require_role($role)
+{
+    require_login();
+
+    if (!isset($_SESSION['role_name']) || $_SESSION['role_name'] !== $role) {
+        header('Location: /AMS/public/login.php');
+        exit;
+    }
+}
+
 function login_user($email, $password)
 {
     global $pdo;
