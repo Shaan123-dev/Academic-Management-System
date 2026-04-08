@@ -1,49 +1,73 @@
 <?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
+
+if (is_logged_in()) {
+    redirect(dashboard_url_by_role(current_user()['role_name']));
+}
 
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
-    $password = trim($_POST['password'] ?? '');
+if (is_post()) {
+    verify_csrf();
 
-    if ($email === '' || $password === '') {
-        $error = 'Please enter both email and password.';
+    $email = clean_input($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if (!validate_email($email)) {
+        $error = 'Please enter a valid email address.';
+    } elseif ($password === '') {
+        $error = 'Password is required.';
     } else {
-        $result = login_user($email, $password);
-
-        if ($result['success']) {
-            if ($result['role'] === 'Admin') {
-                header('Location: /AMS/public/admin/dashboard.php');
-                exit;
-            } elseif ($result['role'] === 'Teacher') {
-                header('Location: /AMS/public/teacher/dashboard.php');
-                exit;
-            } elseif ($result['role'] === 'Student') {
-                header('Location: /AMS/public/student/dashboard.php');
-                exit;
-            } else {
-                $error = 'Unknown role detected.';
-            }
+        if (login_user($pdo, $email, $password)) {
+            redirect(dashboard_url_by_role(current_user()['role_name']));
         } else {
-            $error = $result['message'];
+            $error = 'Invalid email or password.';
         }
     }
 }
 
-include __DIR__ . '/../includes/header.php';
+$pageTitle = 'Login';
+$pageDescription = 'Secure login for Academic Management Portal.';
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<h2>Login Page</h2>
+<section class="login-page">
+    <div class="login-card">
+        <div class="logo-wrap">
+            <img src="<?= BASE_URL ?>/assets/images/logo.jpeg" alt="Marks Mafias Logo">
+        </div>
 
-<?php if ($error !== ''): ?>
-    <p style="color:red;"><?= htmlspecialchars($error) ?></p>
-<?php endif; ?>
+        <h2>Login</h2>
+        <p>Sign in with your Admin, Teacher, or Student account.</p>
 
-<form method="POST" action="">
-    <input type="email" name="email" placeholder="Email" required><br><br>
-    <input type="password" name="password" placeholder="Password" required><br><br>
-    <button type="submit">Login</button>
-</form>
+        <?php if ($error): ?>
+            <div class="alert alert-danger"><?= e($error) ?></div>
+        <?php endif; ?>
 
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+        <?php if ($msg = get_flash('success')): ?>
+            <div class="alert alert-success"><?= e($msg) ?></div>
+        <?php endif; ?>
+
+        <form method="POST" action="">
+            <?= csrf_input() ?>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" value="<?= old('email') ?>" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%;">Login</button>
+        </form>
+    </div>
+</section>
+
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>
