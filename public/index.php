@@ -94,53 +94,27 @@ $events = $eventStmt->fetchAll();
     </div>
 </section>
 
+// In public/index.php, REPLACE the events section with:
 <section class="section" style="background:#eef5ff;">
-    <div class="container grid-2">
-        <div class="panel">
-            <h3>Upcoming Events</h3>
-            <div class="events-list">
-                <?php if ($events): ?>
-                    <?php foreach ($events as $event): ?>
-                        <div class="event-item">
-                            <h4><?= e($event['title']) ?></h4>
-                            <p><?= e($event['description'] ?? 'No description available.') ?></p>
-                            <small>
-                                <?= e($event['start_date']) ?>
-                                <?php if (!empty($event['end_date'])): ?>
-                                    - <?= e($event['end_date']) ?>
-                                <?php endif; ?>
-                            </small>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="event-item">
-                        <h4>No upcoming events yet</h4>
-                        <p>Events added by admin will appear here.</p>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
+    <div class="container">
         <div class="panel">
             <h3>Latest Announcements</h3>
-            <div class="events-list">
+            <div class="announcements-list">
                 <?php if ($announcements): ?>
                     <?php foreach ($announcements as $announcement): ?>
-                        <div class="event-item">
+                        <div class="announcement-item full-width">
                             <h4><?= e($announcement['title']) ?></h4>
-                            <p><?= e(mb_strimwidth(strip_tags($announcement['content']), 0, 180, '...')) ?></p>
+                            <p><?= e(mb_strimwidth(strip_tags($announcement['content']), 0, 280, '...')) ?></p>
                             <small><?= e($announcement['created_at']) ?></small>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div class="event-item">
-                        <h4>No public announcements yet</h4>
-                        <p>Announcements published for all users will appear here.</p>
+                    <div class="announcement-item">
+                        <h4>No announcements yet</h4>
+                        <p>Announcements will appear here.</p>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
     </div>
 </section>
-
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
