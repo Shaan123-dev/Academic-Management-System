@@ -1,6 +1,9 @@
 <?php
+// Add this at the top after <?php
+define('BASE_URL', '/AMS');  // Change if your folder name is different
+
 $host = 'localhost';
-$dbname = 'ams';
+$dbname = 'academic_management';
 $username = 'root';
 $password = '';
 
