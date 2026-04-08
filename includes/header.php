@@ -36,7 +36,6 @@ $pageDescription = $pageDescription ?? 'Academic Management Portal System for Ad
                 <a href="<?= BASE_URL ?>/public/logout.php">Logout</a>
             <?php else: ?>
                 <a href="<?= BASE_URL ?>/public/login.php">Login</a>
-                <a href="<?= BASE_URL ?>/public/register.php">Register</a>
             <?php endif; ?>
         </nav>
     </div>
