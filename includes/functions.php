@@ -1,151 +1,172 @@
 <?php
 declare(strict_types=1);
 
-function e(?string $value): string
-{
-    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-}
-
-function clean_input(?string $value): string
-{
-    return trim(strip_tags((string)$value));
-}
-
-function redirect(string $url): void
-{
-    header("Location: $url");
-    exit;
-}
-
-function set_flash(string $key, string $message): void
-{
-    $_SESSION['flash'][$key] = $message;
-}
-
-function get_flash(string $key): ?string
-{
-    if (!isset($_SESSION['flash'][$key])) {
-        return null;
+function e(null|string|int|float $value): string { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
+function is_post(): bool { return ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'; }
+function redirect_to(string $path): void { header('Location: ' . $path); exit; }
+function flash(string $type, string $message): void { $_SESSION['flash'][] = ['type' => $type, 'message' => $message]; }
+function display_flash(): void {
+    if (empty($_SESSION['flash'])) return;
+    foreach ($_SESSION['flash'] as $item) {
+        echo '<div class="alert alert-' . e($item['type']) . '">' . e($item['message']) . '</div>';
     }
-    $message = $_SESSION['flash'][$key];
-    unset($_SESSION['flash'][$key]);
-    return $message;
+    unset($_SESSION['flash']);
 }
 
-function generate_csrf_token(): string
-{
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
+function csrf_token(): string {
+    if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     return $_SESSION['csrf_token'];
 }
 
-function csrf_input(): string
-{
-    return '<input type="hidden" name="csrf_token" value="' . e(generate_csrf_token()) . '">';
-}
-
-function verify_csrf(): void
-{
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $token = $_POST['csrf_token'] ?? '';
-        if (
-            empty($_SESSION['csrf_token']) ||
-            !hash_equals($_SESSION['csrf_token'], $token)
-        ) {
-            http_response_code(403);
-            die('Invalid CSRF token.');
-        }
+function verify_csrf(): void {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!$token || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+        http_response_code(403);
+        exit('Invalid CSRF token.');
     }
 }
 
-function is_post(): bool
-{
-    return $_SERVER['REQUEST_METHOD'] === 'POST';
+function user(): ?array { return $_SESSION['user'] ?? null; }
+function logged_in(): bool { return user() !== null; }
+
+function require_login(): void {
+    if (!logged_in()) {
+        flash('danger', 'Please login first.');
+        redirect_to(BASE_URL . '/login.php');
+    }
 }
 
-function old(string $key, string $default = ''): string
-{
-    return e($_POST[$key] ?? $default);
+function require_role(array $roles): void {
+    require_login();
+    $role = user()['role'] ?? '';
+    if (!in_array($role, $roles, true)) {
+        http_response_code(403);
+        exit('Access denied.');
+    }
 }
 
-function validate_email(string $email): bool
-{
-    return (bool) filter_var($email, FILTER_VALIDATE_EMAIL);
-}
-
-function strong_password(string $password): bool
-{
-    return preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/', $password) === 1;
-}
-
-function upload_file(array $file, array $allowedExtensions, array $allowedMimeTypes, string $uploadDir, int $maxSize = 5242880): ?array
-{
-    if (!isset($file['error']) || is_array($file['error'])) {
-        return null;
+function dashboard_path(?string $role): string {
+    if (!$role) {
+        return BASE_URL . '/login.php';
     }
 
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        return null;
+    return match($role) {
+        'admin' => BASE_URL . '/admin/dashboard.php',
+        'teacher' => BASE_URL . '/teacher/dashboard.php',
+        'student' => BASE_URL . '/student/dashboard.php',
+        default => BASE_URL . '/login.php',
+    };
+}
+
+function current_datetime(): string { return date('l, d M Y'); }
+function format_dt(?string $value, string $format = 'd M Y, h:i A'): string { return $value ? date($format, strtotime($value)) : '-'; }
+
+function upload_file(string $field, array $allowedExtensions, int $maxBytes, string $targetDir): ?string {
+    if (empty($_FILES[$field]['name'])) return null;
+
+    $file = $_FILES[$field];
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('File upload failed.');
     }
 
-    if ($file['size'] > $maxSize) {
-        return null;
+    if (($file['size'] ?? 0) > $maxBytes) {
+        throw new RuntimeException('File is too large.');
     }
-
-    $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $mime = $finfo->file($file['tmp_name']);
 
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
     if (!in_array($ext, $allowedExtensions, true)) {
-        return null;
+        throw new RuntimeException('Invalid file type.');
     }
 
-    if (!in_array($mime, $allowedMimeTypes, true)) {
-        return null;
+    if (!is_dir($targetDir)) {
+        mkdir($targetDir, 0775, true);
     }
 
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
+    $safeName = bin2hex(random_bytes(10)) . '.' . $ext;
+    $fullPath = rtrim($targetDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $safeName;
+
+    if (!move_uploaded_file($file['tmp_name'], $fullPath)) {
+        throw new RuntimeException('Unable to save uploaded file.');
     }
 
-    $safeName = bin2hex(random_bytes(16)) . '.' . $ext;
-    $destination = rtrim($uploadDir, '/') . '/' . $safeName;
+    return $safeName;
+}
 
-    if (!move_uploaded_file($file['tmp_name'], $destination)) {
-        return null;
+function validate_required(array $fields, array $input): array {
+    $errors = [];
+    foreach ($fields as $field => $label) {
+        if (!isset($input[$field]) || trim((string)$input[$field]) === '') {
+            $errors[] = $label . ' is required.';
+        }
     }
+    return $errors;
+}
 
-    return [
-        'original_name' => basename($file['name']),
-        'saved_name' => $safeName,
-        'path' => $destination,
-        'mime' => $mime,
-        'size' => $file['size']
+function validate_password_strength(string $password): array {
+    $errors = [];
+    if (strlen($password) < 8) $errors[] = 'Password must be at least 8 characters.';
+    if (!preg_match('/[A-Z]/', $password)) $errors[] = 'Password must include at least one uppercase letter.';
+    if (!preg_match('/[a-z]/', $password)) $errors[] = 'Password must include at least one lowercase letter.';
+    if (!preg_match('/[0-9]/', $password)) $errors[] = 'Password must include at least one number.';
+    return $errors;
+}
+
+function stats(PDO $pdo): array {
+    $tables = [
+        'students' => 'SELECT COUNT(*) FROM users WHERE role = "student"',
+        'teachers' => 'SELECT COUNT(*) FROM users WHERE role = "teacher"',
+        'courses' => 'SELECT COUNT(*) FROM courses',
+        'subjects' => 'SELECT COUNT(*) FROM subjects',
+        'assignments' => 'SELECT COUNT(*) FROM assignments',
+        'announcements' => 'SELECT COUNT(*) FROM announcements',
     ];
+    $data = [];
+    foreach ($tables as $key => $sql) {
+        $data[$key] = (int)$pdo->query($sql)->fetchColumn();
+    }
+    return $data;
 }
 
-function log_audit(PDO $pdo, ?int $userId, string $action, string $moduleName, ?int $recordId = null): void
-{
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
-    $stmt = $pdo->prepare("
-        INSERT INTO audit_logs (user_id, action, module_name, record_id, ip_address)
-        VALUES (?, ?, ?, ?, ?)
-    ");
-    $stmt->execute([$userId, $action, $moduleName, $recordId, $ip]);
+function grade_from_total(float $total): string {
+    return match (true) {
+        $total >= 90 => 'A+',
+        $total >= 80 => 'A',
+        $total >= 70 => 'B+',
+        $total >= 60 => 'B',
+        $total >= 50 => 'C+',
+        $total >= 40 => 'C',
+        default => 'F',
+    };
 }
 
-function role_name_by_id(PDO $pdo, int $roleId): ?string
-{
-    $stmt = $pdo->prepare("SELECT name FROM roles WHERE id = ?");
-    $stmt->execute([$roleId]);
-    $row = $stmt->fetch();
-    return $row['name'] ?? null;
+function gpa_from_total(float $total): float {
+    return match (true) {
+        $total >= 90 => 4.0,
+        $total >= 80 => 3.7,
+        $total >= 70 => 3.3,
+        $total >= 60 => 3.0,
+        $total >= 50 => 2.7,
+        $total >= 40 => 2.0,
+        default => 0.0,
+    };
 }
 
-function current_year(): string
-{
-    return date('Y');
+function photo_path(?string $photo): string {
+    return $photo ? BASE_URL . '/../uploads/photos/' . rawurlencode($photo) : BASE_URL . '/../assets/images/logo.png';
 }
-?>
+
+function qr_url(string $text): string {
+    return 'https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' . rawurlencode($text);
+}
+
+function day_options(): array { return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']; }
+function attendance_percent(int $present, int $total): float { return $total > 0 ? round(($present / $total) * 100, 2) : 0.0; }
+function digital_code(string $prefix, int $id): string { return strtoupper($prefix) . '-' . str_pad((string)$id, 4, '0', STR_PAD_LEFT); }
+
+function next_role_code(PDO $pdo, string $role): string {
+    $prefix = $role === 'teacher' ? 'TCH' : ($role === 'student' ? 'STD' : 'ADM');
+    $countStmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE role = ?');
+    $countStmt->execute([$role]);
+    $next = (int)$countStmt->fetchColumn() + 1;
+    return $prefix . '-' . str_pad((string)$next, 4, '0', STR_PAD_LEFT);
+}

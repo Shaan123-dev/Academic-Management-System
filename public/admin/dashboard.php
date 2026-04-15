@@ -1,144 +1,78 @@
 <?php
-declare(strict_types=1);
-
-require_once __DIR__ . '/../../config/db.php';
-require_once __DIR__ . '/../../includes/functions.php';
-require_once __DIR__ . '/../../includes/auth.php';
-
-// Only admin can access this page
-require_role('admin');
-
-$pageTitle = 'Admin Dashboard';
-$pageDescription = 'Admin dashboard for Academic Management Portal.';
-
-/*
-|--------------------------------------------------------------------------
-| Small helper function to count rows from allowed tables
-|--------------------------------------------------------------------------
-*/
-function get_count(PDO $pdo, string $table): int
-{
-    $allowed = ['users', 'students', 'teachers', 'courses', 'subjects', 'classes', 'assignments', 'announcements', 'results'];
-
-    if (!in_array($table, $allowed, true)) {
-        return 0;
-    }
-
-    $stmt = $pdo->query("SELECT COUNT(*) AS total FROM {$table}");
-    $row = $stmt->fetch();
-
-    return (int)($row['total'] ?? 0);
-}
-
-// Dashboard statistics
-$totalStudents = get_count($pdo, 'students');
-$totalTeachers = get_count($pdo, 'teachers');
-$totalCourses = get_count($pdo, 'courses');
-$totalSubjects = get_count($pdo, 'subjects');
-$totalAssignments = get_count($pdo, 'assignments');
-$totalAnnouncements = get_count($pdo, 'announcements');
-$totalResults = get_count($pdo, 'results');
-$totalClasses = get_count($pdo, 'classes');
-
-// Recent announcements for dashboard table
-$recentAnnouncementsStmt = $pdo->query("
-    SELECT a.title, a.target_role, a.created_at, u.full_name
-    FROM announcements a
-    INNER JOIN users u ON u.id = a.created_by_user_id
-    ORDER BY a.created_at DESC
-    LIMIT 5
-");
-$recentAnnouncements = $recentAnnouncementsStmt->fetchAll();
-
-require_once __DIR__ . '/../../includes/header.php';
+require_once dirname(dirname(__DIR__)) . '/includes/auth.php';
+require_role(['admin']);
+$stats = stats($pdo);
+$announcements = $pdo->query('SELECT title, body, posted_at FROM announcements ORDER BY posted_at DESC LIMIT 5')->fetchAll();
+$pageTitle = 'Admin Dashboard | ' . APP_NAME;
+include dirname(dirname(__DIR__)) . '/includes/header.php';
 ?>
+<div class="dashboard-shell">
+<?php include dirname(dirname(__DIR__)) . '/includes/sidebar.php'; ?>
+<main class="main-panel">
+  <div class="dashboard-top">
+    <div class="dashboard-title">
+      <h1>Admin Dashboard</h1>
+      <p><?= e(current_datetime()) ?> • Welcome, <?= e(user()['name']) ?></p>
+    </div>
+    <div class="user-chip">👑 Admin Panel</div>
+  </div>
 
-<section class="content-section">
-    <div class="container sidebar-layout">
-        <?php require_once __DIR__ . '/../../includes/sidebar.php'; ?>
+  <div class="metric-grid">
+    <div class="metric-card"><div class="label">Students</div><div class="value"><?= (int)$stats['students'] ?></div><div class="subtext">Registered student accounts</div></div>
+    <div class="metric-card"><div class="label">Teachers</div><div class="value"><?= (int)$stats['teachers'] ?></div><div class="subtext">Active teaching staff</div></div>
+    <div class="metric-card"><div class="label">Assignments</div><div class="value"><?= (int)$stats['assignments'] ?></div><div class="subtext">Uploaded academic tasks</div></div>
+    <div class="metric-card"><div class="label">Announcements</div><div class="value"><?= (int)$stats['announcements'] ?></div><div class="subtext">Published notices</div></div>
+  </div>
 
-        <div class="content-area">
-            <div class="page-header">
-                <h2>Admin Dashboard</h2>
-                <p>Welcome, <?= e(current_user()['full_name']) ?>. Here is the overall system summary.</p>
-            </div>
+  <div class="dashboard-grid">
 
-            <div class="dashboard-cards">
-                <div class="stat-card">
-                    <h4>Total Students</h4>
-                    <p><?= e((string)$totalStudents) ?></p>
-                </div>
+    <div class="panel-card">
+        <h3>Quick Actions</h3>
 
-                <div class="stat-card">
-                    <h4>Total Teachers</h4>
-                    <p><?= e((string)$totalTeachers) ?></p>
-                </div>
+        <div class="quick-actions">
+            <a href="<?= BASE_URL ?>/admin/students.php">
+                <span class="qa-emoji">🎓</span>
+                <span>Students</span>
+            </a>
 
-                <div class="stat-card">
-                    <h4>Total Courses</h4>
-                    <p><?= e((string)$totalCourses) ?></p>
-                </div>
+            <a href="<?= BASE_URL ?>/admin/teachers.php">
+                <span class="qa-emoji">👨‍🏫</span>
+                <span>Teachers</span>
+            </a>
 
-                <div class="stat-card">
-                    <h4>Total Subjects</h4>
-                    <p><?= e((string)$totalSubjects) ?></p>
-                </div>
+            <a href="<?= BASE_URL ?>/admin/courses.php">
+                <span class="qa-emoji">📚</span>
+                <span>Courses</span>
+            </a>
 
-                <div class="stat-card">
-                    <h4>Total Classes</h4>
-                    <p><?= e((string)$totalClasses) ?></p>
-                </div>
+            <a href="<?= BASE_URL ?>/admin/subjects.php">
+                <span class="qa-emoji">📝</span>
+                <span>Subjects</span>
+            </a>
 
-                <div class="stat-card">
-                    <h4>Total Assignments</h4>
-                    <p><?= e((string)$totalAssignments) ?></p>
-                </div>
+            <a href="<?= BASE_URL ?>/admin/announcements.php">
+                <span class="qa-emoji">📢</span>
+                <span>Announcements</span>
+            </a>
 
-                <div class="stat-card">
-                    <h4>Total Results</h4>
-                    <p><?= e((string)$totalResults) ?></p>
-                </div>
-
-                <div class="stat-card">
-                    <h4>Announcements</h4>
-                    <p><?= e((string)$totalAnnouncements) ?></p>
-                </div>
-            </div>
-
-            <div class="table-card">
-                <h3>Recent Announcements</h3>
-
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Target</th>
-                                <th>Created By</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if ($recentAnnouncements): ?>
-                                <?php foreach ($recentAnnouncements as $item): ?>
-                                    <tr>
-                                        <td><?= e($item['title']) ?></td>
-                                        <td><span class="badge badge-primary"><?= e($item['target_role']) ?></span></td>
-                                        <td><?= e($item['full_name']) ?></td>
-                                        <td><?= e($item['created_at']) ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="4">No announcements found.</td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <a href="<?= BASE_URL ?>/admin/reports.php">
+                <span class="qa-emoji">📊</span>
+                <span>Reports</span>
+            </a>
         </div>
     </div>
-</section>
-
-<?php require_once __DIR__ . '/../../includes/footer.php'; ?>
+    <div class="panel-card">
+      <h3>Recent Announcements</h3>
+      <div class="list-clean">
+        <?php foreach ($announcements as $item): ?>
+          <div class="list-item">
+            <strong><?= e($item['title']) ?></strong>
+            <span><?= e(mb_strimwidth($item['body'], 0, 90, '...')) ?> — <?= e(date('d M Y', strtotime($item['posted_at']))) ?></span>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+<?php include dirname(dirname(__DIR__)) . '/includes/footer.php'; ?>

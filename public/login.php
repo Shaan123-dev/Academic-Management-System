@@ -1,73 +1,97 @@
 <?php
-declare(strict_types=1);
+require_once dirname(__DIR__) . '/includes/auth.php';
 
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../includes/functions.php';
-require_once __DIR__ . '/../includes/auth.php';
-
-if (is_logged_in()) {
-    redirect(dashboard_url_by_role(current_user()['role_name']));
+if (logged_in()) {
+    redirect_to(dashboard_path(user()['role'] ?? null));
 }
-
-$error = '';
 
 if (is_post()) {
     verify_csrf();
 
-    $email = clean_input($_POST['email'] ?? '');
+    $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    if (!validate_email($email)) {
-        $error = 'Please enter a valid email address.';
-    } elseif ($password === '') {
-        $error = 'Password is required.';
-    } else {
-        if (login_user($pdo, $email, $password)) {
-            redirect(dashboard_url_by_role(current_user()['role_name']));
-        } else {
-            $error = 'Invalid email or password.';
+    $errors = validate_required([
+        'email' => 'Email',
+        'password' => 'Password',
+    ], $_POST);
+
+    if (!$errors) {
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? AND status = "active" LIMIT 1');
+        $stmt->execute([$email]);
+        $found = $stmt->fetch();
+
+        if ($found && password_verify($password, $found['password'])) {
+            $_SESSION['user'] = $found;
+            flash('success', 'Login successful.');
+            redirect_to(dashboard_path($found['role']));
         }
+
+        $errors[] = 'Invalid email or password.';
     }
+
+    foreach ($errors as $error) {
+        flash('danger', $error);
+    }
+
+    redirect_to(BASE_URL . '/login.php');
 }
 
-$pageTitle = 'Login';
-$pageDescription = 'Secure login for Academic Management Portal.';
-require_once __DIR__ . '/../includes/header.php';
+$pageTitle = 'Login | ' . APP_NAME;
+$bodyClass = 'auth-page auth-split-page';
+$hideFooter = true;
+
+include dirname(__DIR__) . '/includes/header.php';
 ?>
 
-<section class="login-page">
-    <div class="login-card">
-        <div class="logo-wrap">
-            <img src="<?= BASE_URL ?>/assets/images/logo.jpeg" alt="Marks Mafias Logo">
+<div class="auth-split-wrap">
+    <div class="auth-left-panel">
+        <div class="auth-left-inner">
+            <div class="auth-left-logo">
+                <img src="<?= BASE_URL ?>/../assets/images/logo.png" alt="Logo">
+            </div>
+
+            <h1>Welcome Back</h1>
+            <p>Sign in to continue to your academic dashboard and manage schedules, attendance, assignments, results, and announcements.</p>
+        </div>
+    </div>
+
+    <div class="auth-right-panel">
+        <div class="auth-top-links">
+            <a href="<?= BASE_URL ?>/index.php">Home</a>
         </div>
 
-        <h2>Login</h2>
-        <p>Sign in with your Admin, Teacher, or Student account.</p>
-
-        <?php if ($error): ?>
-            <div class="alert alert-danger"><?= e($error) ?></div>
-        <?php endif; ?>
-
-        <?php if ($msg = get_flash('success')): ?>
-            <div class="alert alert-success"><?= e($msg) ?></div>
-        <?php endif; ?>
-
-        <form method="POST" action="">
-            <?= csrf_input() ?>
-
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" value="<?= old('email') ?>" required>
+        <div class="auth-form-card">
+            <div class="auth-header-row">
+                <div class="auth-header-main">
+                    <h2>Sign In</h2>
+                    <p>Enter your account details to continue.</p>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
+            <?php display_flash(); ?>
 
-            <button type="submit" class="btn btn-primary" style="width:100%;">Login</button>
-        </form>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+
+                <div class="auth-group">
+                    <label>Email <span class="required">*</span></label>
+                    <input type="email" name="email" required>
+                </div>
+
+                <div class="auth-group">
+                    <label>Password <span class="required">*</span></label>
+                    <input type="password" name="password" required>
+                </div>
+
+                <button type="submit" class="auth-submit-btn">Sign In</button>
+
+                <div class="auth-bottom-row">
+                    <a href="<?= BASE_URL ?>/forgot_password.php">Forgot Password?</a>
+                </div>
+            </form>
+        </div>
     </div>
-</section>
+</div>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<?php include dirname(__DIR__) . '/includes/footer.php'; ?>
