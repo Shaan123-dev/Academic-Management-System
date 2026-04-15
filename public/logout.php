@@ -1,10 +1,5 @@
 <?php
-declare(strict_types=1);
-
-require_once __DIR__ . '/../includes/auth.php';
-
-if (is_logged_in()) {
-    logout_user();
-}
-
-redirect('/AMS/public/index.php');
+require_once dirname(__DIR__) . '/includes/auth.php';
+session_destroy();
+header('Location: ' . BASE_URL . '/login.php');
+exit;
