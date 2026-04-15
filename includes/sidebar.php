@@ -1,50 +1,67 @@
 <?php
-/*
-|--------------------------------------------------------------------------
-| Global Sidebar (Reusable)
-|--------------------------------------------------------------------------
-| Shows different menus based on user role
-|--------------------------------------------------------------------------
-*/
+$current = basename($_SERVER['PHP_SELF']);
+$role = user()['role'] ?? '';
+$base = BASE_URL . '/' . $role;
+$links = ['dashboard.php' => 'Dashboard'];
 
-$user = current_user();
-$role = $user['role_name'] ?? '';
+if ($role === 'admin') {
+    $links += [
+        'students.php' => 'Manage Students',
+        'teachers.php' => 'Manage Teachers',
+        'users.php' => 'Manage Users',
+        'courses.php' => 'Courses',
+        'subjects.php' => 'Subjects',
+        'enrollments.php' => 'Enrollments',
+        'classes.php' => 'Classes',
+        'announcements.php' => 'Announcements',
+        'teacher_attendance.php' => 'Teacher Attendance',
+        'student_attendance.php' => 'Student Attendance',
+        'reports.php' => 'Reports',
+        'profile.php' => 'Profile',
+    ];
+} elseif ($role === 'teacher') {
+    $links += [
+        'teacher_attendance.php' => 'My Attendance',
+        'attendance.php' => 'Student Attendance',
+        'classes.php' => 'Assigned Classes',
+        'students.php' => 'Class Students',
+        'assignments.php' => 'Assignments',
+        'materials.php' => 'Study Materials',
+        'results.php' => 'Results',
+        'announcements.php' => 'Announcements',
+        'schedule.php' => 'Schedule',
+        'digital_id.php' => 'Digital ID',
+        'settings.php' => 'Settings',
+    ];
+} elseif ($role === 'student') {
+    $links += [
+        'attendance.php' => 'My Attendance',
+        'courses.php' => 'My Courses',
+        'subjects.php' => 'My Subjects',
+        'assignments.php' => 'Assignments',
+        'materials.php' => 'Study Materials',
+        'results.php' => 'Results',
+        'announcements.php' => 'Announcements',
+        'digital_id.php' => 'Digital ID',
+        'schedule.php' => 'Schedule',
+        'settings.php' => 'Settings',
+    ];
+}
 ?>
-
 <aside class="sidebar">
-
-    <!-- COMMON -->
-    <a href="<?= BASE_URL ?>/public/index.php">Home</a>
-
-    <?php if ($role === 'admin'): ?>
-
-        <a href="<?= BASE_URL ?>/public/admin/dashboard.php">Dashboard</a>
-        <a href="<?= BASE_URL ?>/public/admin/teachers/teacher_index.php">Teachers</a>
-        <a href="<?= BASE_URL ?>/public/admin/students/student_index.php">Students</a>
-        <a href="<?= BASE_URL ?>/public/admin/courses/course_index.php">Courses</a>
-        <a href="<?= BASE_URL ?>/public/admin/attendance/attendance_index.php">Attendance</a>
-        <a href="<?= BASE_URL ?>/public/admin/grades.php">Results / Grades</a>
-        <a href="<?= BASE_URL ?>/public/admin/assignments/assignment_index.php">Assignments</a>
-        <a href="<?= BASE_URL ?>/public/admin/announcements/announcement_index.php">Announcements</a>
-
-    <?php elseif ($role === 'teacher'): ?>
-
-        <a href="<?= BASE_URL ?>/public/teacher/dashboard.php">Dashboard</a>
-        <a href="<?= BASE_URL ?>/public/teacher/students.php">Students</a>
-        <a href="<?= BASE_URL ?>/public/teacher/assignments/assignment_index.php">Assignments</a>
-        <a href="<?= BASE_URL ?>/public/teacher/assignments/submission_index.php">Submissions</a>
-        <a href="<?= BASE_URL ?>/public/teacher/grades.php">Results / Grades</a>
-        <a href="<?= BASE_URL ?>/public/teacher/attendance/attendance_index.php">Attendance</a>
-
-    <?php elseif ($role === 'student'): ?>
-
-        <a href="<?= BASE_URL ?>/public/student/dashboard.php">Dashboard</a>
-        <a href="<?= BASE_URL ?>/public/student/attendance/attendance_index.php">My Attendance</a>
-        <a href="<?= BASE_URL ?>/public/student/grades.php">Results / Grades</a>
-        <a href="<?= BASE_URL ?>/public/student/assignments/assignment_index.php">Assignments</a>
-
-    <?php endif; ?>
-
-    <a href="<?= BASE_URL ?>/public/logout.php">Logout</a>
-
+  <div class="sidebar-brand">
+    <img src="<?= BASE_URL ?>/../assets/images/logo.png" alt="Logo">
+    <div>
+      <div class="title">Marks Mafias</div>
+      <div class="subtitle">Academic Management Portal</div>
+    </div>
+  </div>
+  <nav class="sidebar-menu">
+    <?php foreach ($links as $file => $label): ?>
+      <a href="<?= $base . '/' . $file ?>" class="<?= $current === $file ? 'active' : '' ?>">
+        <span><?= e($label) ?></span>
+      </a>
+    <?php endforeach; ?>
+    <a href="<?= BASE_URL ?>/logout.php"><span>Logout</span></a>
+  </nav>
 </aside>

@@ -1,14 +1,9 @@
-<?php
-declare(strict_types=1);
-?>
-</main>
-
-<footer class="site-footer">
+<?php if (empty($hideFooter)): ?>
+<footer class="footer">
     <div class="container">
-        <p>&copy; <?= e(current_year()) ?> Marks Mafias Academic Management Portal. All rights reserved.</p>
+        &copy; <?= date('Y') ?> Marks Mafias • Academic Management Portal System
     </div>
 </footer>
-
-<script src="<?= BASE_URL ?>/assets/js/script.js"></script>
+<?php endif; ?>
 </body>
 </html>
