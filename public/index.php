@@ -1,120 +1,63 @@
 <?php
-declare(strict_types=1);
-
-$pageTitle = 'Home - Academic Management Portal';
-$pageDescription = 'Marks Mafias Academic Management Portal with gallery, announcements, events, and role-based login.';
-
-require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../includes/functions.php';
-require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../includes/header.php';
-
-/*
-|--------------------------------------------------------------------------
-| Fetch only public-safe announcements for home page
-|--------------------------------------------------------------------------
-| Home page should only show announcements meant for all users.
-|--------------------------------------------------------------------------
-*/
-$annStmt = $pdo->prepare("
-    SELECT title, content, created_at
-    FROM announcements
-    WHERE status = 'published'
-      AND target_role = 'all'
-    ORDER BY created_at DESC
-    LIMIT 3
-");
-$annStmt->execute();
-$announcements = $annStmt->fetchAll();
-
-/*
-|--------------------------------------------------------------------------
-| Fetch upcoming events
-|--------------------------------------------------------------------------
-*/
-$eventStmt = $pdo->prepare("
-    SELECT title, description, start_date, end_date
-    FROM calendar_events
-    ORDER BY start_date ASC
-    LIMIT 3
-");
-$eventStmt->execute();
-$events = $eventStmt->fetchAll();
+require_once dirname(__DIR__) . '/includes/auth.php';
+$pageTitle = APP_NAME . ' | Home';
+$announcements = $pdo->query('SELECT title, body, posted_at FROM announcements ORDER BY posted_at DESC LIMIT 3')->fetchAll();
+include dirname(__DIR__) . '/includes/header.php';
+include dirname(__DIR__) . '/includes/topnav.php';
 ?>
-
-<section class="hero">
-    <div class="container hero-grid">
-        <div class="hero-left">
-            <h2>Academic Management Portal</h2>
-            <p>
-                A secure and responsive web portal for Admin, Teacher, and Student users.
-                Manage courses, attendance, assignments, results, announcements, and academic records efficiently.
-            </p>
-
-            <div class="btn-group">
-                <a class="btn btn-primary" href="<?= BASE_URL ?>/public/login.php">Login</a>
-                <a class="btn btn-outline" href="<?= BASE_URL ?>/public/register.php">Register</a>
-            </div>
-        </div>
-
-        <div class="hero-card">
-            <h3 style="color:#0f3d91; margin-bottom:12px;">Short Description</h3>
-            <p style="color:#1b1f24; margin-bottom:16px;">
-                This Academic Management Portal System is designed to streamline academic operations
-                with secure role-based access, user management, attendance, assignments, results,
-                announcements, and class scheduling.
-            </p>
-
-            <img src="<?= BASE_URL ?>/assets/images/logo.jpeg" alt="Marks Mafias Logo" style="max-width:180px; margin:0 auto;">
-        </div>
+<div class="landing-shell home-refined-shell">
+  <section class="landing-hero refined-hero">
+    <div class="hero-center refined-hero-center">
+      <h2>Academic Management<br>Portal</h2>
+      <p>
+        A clean academic portal for attendance, assignments, results, announcements,
+        schedules, and daily academic management for admins, teachers, and students.
+      </p>
+      <div class="hero-actions">
+        <a class="hero-cta primary" href="<?= BASE_URL ?>/login.php">Portal Access</a>
+        <a class="hero-cta" href="#gallery">Explore Gallery</a>
+      </div>
     </div>
-</section>
+  </section>
 
-<section class="section">
-    <div class="container">
-        <h2 class="section-title">Gallery</h2>
-        <div class="grid-4">
-            <div class="gallery-item">
-                <img src="<?= BASE_URL ?>/assets/images/background.jpg" alt="Campus View">
-                <div class="caption">Campus Environment</div>
-            </div>
-            <div class="gallery-item">
-                <img src="<?= BASE_URL ?>/assets/images/background.jpg" alt="Students">
-                <div class="caption">Student Activities</div>
-            </div>
-            <div class="gallery-item">
-                <img src="<?= BASE_URL ?>/assets/images/background.jpg" alt="Academic Blocks">
-                <div class="caption">Academic Facilities</div>
-            </div>
-            <div class="gallery-item">
-                <img src="<?= BASE_URL ?>/assets/images/background.jpg" alt="Classroom">
-                <div class="caption">Classroom Space</div>
-            </div>
-        </div>
+  <section class="section home-gallery-section" id="gallery">
+    <div class="gallery-wide-header solo-header">
+      <h2 class="section-title">Gallery</h2>
+      <p class="gallery-subtitle">A quick visual look at our college.</p>
     </div>
-</section>
+    <div class="gallery gallery-wide-only gallery-wide-only-full">
+      <div class="gallery-item gallery-shot gallery-shot-admin">
+        <div class="caption"><strong>Student Lounge</strong></div>
+      </div>
+      <div class="gallery-item gallery-shot gallery-shot-teacher">
+        <div class="caption"><strong>Classrooms</strong></div>
+      </div>
+      <div class="gallery-item gallery-shot gallery-shot-student">
+        <div class="caption"><strong>Graduation</strong></div>
+      </div>
+    </div>
+  </section>
 
-// In public/index.php, REPLACE the events section with:
-<section class="section" style="background:#eef5ff;">
-    <div class="container">
-        <div class="panel">
-            <h3>Latest Announcements</h3>
-            <div class="announcements-list">
-                <?php if ($announcements): ?>
-                    <?php foreach ($announcements as $announcement): ?>
-                        <div class="announcement-item full-width">
-                            <h4><?= e($announcement['title']) ?></h4>
-                            <p><?= e(mb_strimwidth(strip_tags($announcement['content']), 0, 280, '...')) ?></p>
-                            <small><?= e($announcement['created_at']) ?></small>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="announcement-item">
-                        <h4>No announcements yet</h4>
-                        <p>Announcements will appear here.</p>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
+  <section class="section refined-announcements">
+    <div class="announce-title-row">
+      <h2 class="section-title">Recent Announcements</h2>
+      <span class="announce-chip">Latest updates</span>
     </div>
-</section>
+    <div class="announcement-grid premium-announcement-grid single-row-announcements">
+      <?php foreach ($announcements as $item): ?>
+        <article class="announcement-card premium-announce-card better-announcement-card">
+          <div class="announce-icon">📢</div>
+          <div>
+            <h3><?= e($item['title']) ?></h3>
+            <p><?= e($item['body']) ?></p>
+            <div class="subtle announce-date">Posted on <?= e(date('d M Y', strtotime($item['posted_at']))) ?></div>
+          </div>
+        </article>
+      <?php endforeach; ?>
+      <?php if (!$announcements): ?>
+        <div class="empty">No announcements available right now.</div>
+      <?php endif; ?>
+    </div>
+  </section>
+</div>
+<?php include dirname(__DIR__) . '/includes/footer.php'; ?>
