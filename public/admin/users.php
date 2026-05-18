@@ -2,55 +2,13 @@
 require_once dirname(dirname(__DIR__)) . '/includes/auth.php';
 require_role(['admin']);
 
+// Handle actions (reset password, delete, update status)
 if (is_post()) {
     verify_csrf();
-    $action = $_POST['action'] ?? 'create';
+    $action = $_POST['action'] ?? '';
 
     try {
-        if ($action === 'create') {
-            $errors = validate_required([
-                'role' => 'Role',
-                'name' => 'Full Name',
-                'email' => 'Email',
-                'password' => 'Password',
-            ], $_POST);
-
-            $errors = array_merge($errors, validate_password_strength($_POST['password'] ?? ''));
-
-            if ($errors) {
-                foreach ($errors as $error) flash('danger', $error);
-                redirect_to(BASE_URL . '/admin/users.php');
-            }
-
-            $passwordHash = password_hash($_POST['password'], PASSWORD_DEFAULT);
-
-            $stmt = $pdo->prepare('
-                INSERT INTO users (role, role_code, name, email, password, dob, address, contact, guardian, qualification, department, status)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-            ');
-
-            $role = trim($_POST['role']);
-            $stmt->execute([
-                $role,
-                next_role_code($pdo, $role),
-                trim($_POST['name']),
-                trim($_POST['email']),
-                $passwordHash,
-                $_POST['dob'] ?: null,
-                trim($_POST['address']),
-                trim($_POST['contact']),
-                trim($_POST['guardian']),
-                trim($_POST['qualification']),
-                trim($_POST['department']),
-                'active'
-            ]);
-
-            flash('success', 'User added successfully.');
-        } elseif ($action === 'delete') {
-            $stmt = $pdo->prepare('DELETE FROM users WHERE id = ? AND role != "admin"');
-            $stmt->execute([(int)$_POST['id']]);
-            flash('success', 'User deleted.');
-        } elseif ($action === 'reset_password') {
+        if ($action === 'reset_password') {
             $userId = (int)$_POST['id'];
             $newPassword = $_POST['new_password'] ?? '';
 
@@ -66,8 +24,19 @@ if (is_post()) {
 
             $stmt = $pdo->prepare('UPDATE users SET password = ?, reset_token = NULL, reset_expires_at = NULL WHERE id = ? AND role != "admin"');
             $stmt->execute([password_hash($newPassword, PASSWORD_DEFAULT), $userId]);
+            flash('success', 'Password reset successfully.');
 
-            flash('success', 'User password reset successfully.');
+        } elseif ($action === 'delete') {
+            $stmt = $pdo->prepare('DELETE FROM users WHERE id = ? AND role != "admin"');
+            $stmt->execute([(int)$_POST['id']]);
+            flash('success', 'User deleted successfully.');
+            
+        } elseif ($action === 'update_status') {
+            $userId = (int)$_POST['id'];
+            $status = $_POST['status'] === 'active' ? 'active' : 'inactive';
+            $stmt = $pdo->prepare('UPDATE users SET status = ? WHERE id = ? AND role != "admin"');
+            $stmt->execute([$status, $userId]);
+            flash('success', 'User status updated successfully.');
         }
     } catch (Throwable $e) {
         flash('danger', $e->getMessage());
@@ -76,7 +45,17 @@ if (is_post()) {
     redirect_to(BASE_URL . '/admin/users.php');
 }
 
-$users = $pdo->query('SELECT * FROM users ORDER BY id DESC')->fetchAll();
+// Fetch all non-admin users
+$users = $pdo->query('
+    SELECT * FROM users 
+    WHERE role != "admin" 
+    ORDER BY role, name
+')->fetchAll();
+
+// Group users by role for better display
+$teachers = array_filter($users, function($u) { return $u['role'] === 'teacher'; });
+$students = array_filter($users, function($u) { return $u['role'] === 'student'; });
+
 $pageTitle = 'Manage Users | ' . APP_NAME;
 include dirname(dirname(__DIR__)) . '/includes/header.php';
 ?>
@@ -86,128 +65,73 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
         <div class="dashboard-top">
             <div class="dashboard-title">
                 <h1>Manage Users</h1>
-                <p>Admin can create users, delete users, and reset passwords.</p>
+                <p>View, manage passwords, and update status for all teachers and students.</p>
             </div>
-            <div class="user-chip">Admin</div>
+            <div class="user-chip">
+                👥 Total: <?= count($users) ?> Users
+            </div>
         </div>
 
-        <div class="form-card">
-            <h3 style="margin-bottom:14px;">Add New User</h3>
-            <?php display_flash(); ?>
+        <?php display_flash(); ?>
 
-            <form method="post">
-                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                <input type="hidden" name="action" value="create">
-
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Role</label>
-                        <select name="role">
-                            <option value="teacher">Teacher</option>
-                            <option value="student">Student</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" name="name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" name="email" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" name="password" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Date of Birth</label>
-                        <input type="date" name="dob">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Contact</label>
-                        <input type="text" name="contact">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Guardian</label>
-                        <input type="text" name="guardian">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Qualification</label>
-                        <input type="text" name="qualification">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Department</label>
-                        <input type="text" name="department">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Address</label>
-                    <textarea name="address"></textarea>
-                </div>
-
-                <button class="btn btn-primary">Add User</button>
-            </form>
+        <!-- Info Box -->
+        <div class="alert alert-info" style="background: #e8f3ec; border-left: 4px solid #148f3c; margin-bottom: 20px;">
+            <strong>💡 Note:</strong> To add new students or teachers, please use the 
+            <a href="<?= BASE_URL ?>/admin/students.php" style="color: #148f3c; font-weight: bold;">Manage Students</a> and 
+            <a href="<?= BASE_URL ?>/admin/teachers.php" style="color: #148f3c; font-weight: bold;">Manage Teachers</a> pages.
         </div>
 
-        <div class="table-card">
-            <div class="search-row">
-                <input type="text" placeholder="Search users by role, name, email or department" data-table-search="usersTable">
-            </div>
-
+        <!-- Teachers Section -->
+        <?php if (count($teachers) > 0): ?>
+        <div class="table-card" style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #eef2f0;">
+                👨‍🏫 Teachers (<?= count($teachers) ?>)
+            </h3>
             <div class="table-wrap">
-                <table id="usersTable">
+                <table class="users-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Role</th>
+                            <th>Code</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Department</th>
                             <th>Contact</th>
                             <th>Status</th>
-                            <th>Reset Password</th>
-                            <th>Action</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($users as $item): ?>
+                        <?php foreach ($teachers as $item): ?>
                             <tr>
-                                <td><?= (int)$item['id'] ?></td>
-                                <td><?= e(ucfirst($item['role'])) ?></td>
-                                <td><?= e($item['name']) ?></td>
+                                <td><?= e($item['role_code']) ?></td>
+                                <td><strong><?= e($item['name']) ?></strong></td>
                                 <td><?= e($item['email']) ?></td>
-                                <td><?= e($item['department']) ?></td>
-                                <td><?= e($item['contact']) ?></td>
-                                <td><span class="kpi"><?= e($item['status']) ?></span></td>
+                                <td><?= e($item['department'] ?: '-') ?></td>
+                                <td><?= e($item['contact'] ?: '-') ?></td>
                                 <td>
-                                    <?php if ($item['role'] !== 'admin'): ?>
-                                        <form method="post" class="inline-actions">
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                            <input type="hidden" name="action" value="reset_password">
-                                            <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
-                                            <input type="password" name="new_password" placeholder="New password" required>
-                                            <button class="btn btn-secondary" type="submit">Reset</button>
-                                        </form>
-                                    <?php endif; ?>
+                                    <form method="post" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="action" value="update_status">
+                                        <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
+                                        <select name="status" onchange="this.form.submit()" style="padding: 5px 10px; border-radius: 20px; border: 1px solid #ddd; background: <?= $item['status'] === 'active' ? '#e8f3ec' : '#fde8e8' ?>; color: <?= $item['status'] === 'active' ? '#148f3c' : '#c0392b' ?>; font-weight: bold;">
+                                            <option value="active" <?= $item['status'] === 'active' ? 'selected' : '' ?>>🟢 Active</option>
+                                            <option value="inactive" <?= $item['status'] === 'inactive' ? 'selected' : '' ?>>🔴 Inactive</option>
+                                        </select>
+                                    </form>
                                 </td>
                                 <td>
-                                    <?php if ($item['role'] !== 'admin'): ?>
-                                        <form method="post" onsubmit="return confirm('Delete this user?');">
+                                    <div class="inline-actions">
+                                        <!-- Reset Password Modal Trigger -->
+                                        <button class="icon-btn" onclick="showResetModal(<?= (int)$item['id'] ?>, '<?= e($item['name']) ?>')" title="Reset Password" style="cursor: pointer;">🔑</button>
+                                        
+                                        <!-- Delete Button -->
+                                        <form method="post" onsubmit="return confirm('Delete this teacher? This action cannot be undone.');" style="display: inline;">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
-                                            <button class="btn btn-primary" style="min-height:38px;">Delete</button>
+                                            <button class="icon-btn danger" title="Delete">🗑</button>
                                         </form>
-                                    <?php endif; ?>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -215,6 +139,210 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
                 </table>
             </div>
         </div>
+        <?php endif; ?>
+
+        <!-- Students Section -->
+        <?php if (count($students) > 0): ?>
+        <div class="table-card">
+            <h3 style="margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #eef2f0;">
+                🎓 Students (<?= count($students) ?>)
+            </h3>
+            <div class="table-wrap">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Course</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($students as $item): ?>
+                            <tr>
+                                <td><?= e($item['role_code']) ?></td>
+                                <td><strong><?= e($item['name']) ?></strong></td>
+                                <td><?= e($item['email']) ?></td>
+                                <td><?= e($item['department'] ?: '-') ?></td>
+                                <td><?= e($item['contact'] ?: '-') ?></td>
+                                <td>
+                                    <form method="post" style="display: inline;">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="action" value="update_status">
+                                        <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
+                                        <select name="status" onchange="this.form.submit()" style="padding: 5px 10px; border-radius: 20px; border: 1px solid #ddd; background: <?= $item['status'] === 'active' ? '#e8f3ec' : '#fde8e8' ?>; color: <?= $item['status'] === 'active' ? '#148f3c' : '#c0392b' ?>; font-weight: bold;">
+                                            <option value="active" <?= $item['status'] === 'active' ? 'selected' : '' ?>>🟢 Active</option>
+                                            <option value="inactive" <?= $item['status'] === 'inactive' ? 'selected' : '' ?>>🔴 Inactive</option>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td>
+                                    <div class="inline-actions">
+                                        <!-- Reset Password Modal Trigger -->
+                                        <button class="icon-btn" onclick="showResetModal(<?= (int)$item['id'] ?>, '<?= e($item['name']) ?>')" title="Reset Password" style="cursor: pointer;">🔑</button>
+                                        
+                                        <!-- Delete Button -->
+                                        <form method="post" onsubmit="return confirm('Delete this student? This action cannot be undone.');" style="display: inline;">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?= (int)$item['id'] ?>">
+                                            <button class="icon-btn danger" title="Delete">🗑</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (count($users) === 0): ?>
+            <div class="table-card">
+                <div class="empty" style="text-align: center; padding: 60px;">
+                    <span style="font-size: 48px;">👥</span>
+                    <h3>No Users Found</h3>
+                    <p>No teachers or students have been added yet.</p>
+                    <div style="margin-top: 20px;">
+                        <a href="<?= BASE_URL ?>/admin/students.php" class="btn btn-primary">➕ Add Student</a>
+                        <a href="<?= BASE_URL ?>/admin/teachers.php" class="btn btn-secondary">➕ Add Teacher</a>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
     </main>
 </div>
+
+<!-- Reset Password Modal -->
+<div id="resetModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; border-radius: 16px; padding: 30px; width: 400px; max-width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0;">Reset Password</h3>
+        <p id="resetUserName" style="color: #666;">Loading...</p>
+        <form method="post" id="resetForm">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="reset_password">
+            <input type="hidden" name="id" id="resetUserId">
+            <div class="form-group">
+                <label>New Password <span class="required">*</span></label>
+                <input type="password" name="new_password" id="resetPassword" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                <small style="color: #6c757d; display: block; margin-top: 5px;">
+                    <strong>Password Requirements:</strong> 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special (!@#$%^&*)
+                </small>
+            </div>
+            <div class="form-group">
+                <label>Confirm Password <span class="required">*</span></label>
+                <input type="password" id="confirmPassword" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                <small id="passwordMatchMsg" style="color: #e74c3c; display: none;">Passwords do not match</small>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="submitReset">Reset Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.users-table th, 
+.users-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eef2f0;
+    vertical-align: middle;
+}
+.users-table th {
+    background: #f8f9fa;
+    font-weight: 700;
+    color: #173221;
+}
+.users-table tr:hover {
+    background: #f8fdf8;
+}
+.inline-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.icon-btn {
+    background: #eef2f0;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+.icon-btn.danger {
+    background: #fde8e8;
+    color: #c0392b;
+}
+.icon-btn:hover {
+    opacity: 0.8;
+}
+.alert a {
+    text-decoration: none;
+}
+.alert a:hover {
+    text-decoration: underline;
+}
+@media (max-width: 768px) {
+    .users-table th, .users-table td {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+    }
+    .inline-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+// Reset Password Modal Functions
+function showResetModal(userId, userName) {
+    document.getElementById('resetUserId').value = userId;
+    document.getElementById('resetUserName').innerHTML = 'User: <strong>' + userName + '</strong>';
+    document.getElementById('resetModal').style.display = 'flex';
+    document.getElementById('resetPassword').value = '';
+    document.getElementById('confirmPassword').value = '';
+    document.getElementById('passwordMatchMsg').style.display = 'none';
+}
+
+function closeModal() {
+    document.getElementById('resetModal').style.display = 'none';
+}
+
+// Password match validation
+document.getElementById('confirmPassword').addEventListener('input', function() {
+    var password = document.getElementById('resetPassword').value;
+    var confirm = this.value;
+    var msg = document.getElementById('passwordMatchMsg');
+    var submitBtn = document.getElementById('submitReset');
+    
+    if (password === confirm && password !== '') {
+        msg.style.display = 'none';
+        submitBtn.disabled = false;
+    } else if (password !== confirm && confirm !== '') {
+        msg.style.display = 'block';
+        submitBtn.disabled = true;
+    } else {
+        msg.style.display = 'none';
+        submitBtn.disabled = false;
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('resetModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>
+
 <?php include dirname(dirname(__DIR__)) . '/includes/footer.php'; ?>
