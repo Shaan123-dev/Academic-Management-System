@@ -4,6 +4,10 @@ require_role(['student']);
 
 $studentId = (int) user()['id'];
 
+// ============================================================
+// SECURITY: Only fetch results for the logged-in student
+// Prevents students from viewing others' results via URL manipulation
+// ============================================================
 $rows = $pdo->prepare('
     SELECT r.*, s.subject_name, s.subject_code
     FROM results r
