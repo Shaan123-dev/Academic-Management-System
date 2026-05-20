@@ -3,15 +3,16 @@ require_once dirname(dirname(__DIR__)) . '/includes/auth.php';
 require_role(['student']);
 $studentId = (int)user()['id'];
 
+// Fix: Only fetch courses that the student is enrolled in
 $stmt = $pdo->prepare('
-    SELECT e.*, c.course_name
+    SELECT e.*, c.course_name, c.year_label, c.semester
     FROM enrollments e
     JOIN courses c ON c.id = e.course_id
-    WHERE e.student_id = ?
-    ORDER BY e.id DESC
+    WHERE e.student_id = ? AND e.status = "active"
+    ORDER BY c.course_name, c.year_label, c.semester
 ');
 $stmt->execute([$studentId]);
-$courses = $stmt->fetchAll();
+$enrolledCourses = $stmt->fetchAll();
 
 $pageTitle = 'My Courses | ' . APP_NAME;
 include dirname(dirname(__DIR__)) . '/includes/header.php';
@@ -35,21 +36,27 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
                 <table id="studentCoursesTable">
                     <thead>
                         <tr>
-                            <th>Course</th>
+                            <th>Course Name</th>
                             <th>Year</th>
                             <th>Semester</th>
                             <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($courses as $row): ?>
+                        <?php if (count($enrolledCourses) > 0): ?>
+                            <?php foreach ($enrolledCourses as $row): ?>
+                                <tr>
+                                    <td><?= e($row['course_name']) ?></td>
+                                    <td><?= e($row['year_label']) ?></td>
+                                    <td><?= e($row['semester']) ?></td>
+                                    <td><span class="kpi"><?= e($row['status']) ?></span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
                             <tr>
-                                <td><?= e($row['course_name']) ?></td>
-                                <td><?= e($row['year_label']) ?></td>
-                                <td><?= e($row['semester']) ?></td>
-                                <td><?= e($row['status']) ?></td>
+                                <td colspan="4" class="empty">You are not enrolled in any courses yet.</td>
                             </tr>
-                        <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>

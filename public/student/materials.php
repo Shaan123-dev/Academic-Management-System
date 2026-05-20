@@ -57,7 +57,10 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
                                 <td><?= e($row['teacher_name']) ?></td>
                                 <td><?= e($row['description']) ?></td>
                                 <td>
-                                    <a href="<?= BASE_URL . '/../uploads/materials/' . e($row['file_name']) ?>" target="_blank">Download</a>
+                                    <div class="inline-actions">
+                                        <a class="file-link" href="<?= BASE_URL ?>/open_file.php?type=material&file=<?= urlencode($row['file_name']) ?>" target="_blank">📄 View</a>
+                                        <a class="file-link" href="<?= BASE_URL . '/../uploads/materials/' . e($row['file_name']) ?>" download>⬇ Download</a>
+                                    </div>
                                 </td>
                                 <td><?= e(format_dt($row['created_at'])) ?></td>
                             </tr>
