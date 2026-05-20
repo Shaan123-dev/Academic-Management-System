@@ -1,0 +1,13 @@
+/vendor/
+composer.phar
+
+/uploads/*
+!/uploads/.gitkeep
+!/uploads/**/.gitkeep
+!/uploads/**/.htaccess
+
+/logs/
+*.log
+*.tmp
+/cache/
+/sessions/
