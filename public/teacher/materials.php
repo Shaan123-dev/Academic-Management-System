@@ -9,7 +9,7 @@ if (is_post()) {
 
     try {
         if ($action === 'create') {
-            $file = upload_file('material_file', ['pdf','doc','docx','ppt','pptx'], 10 * 1024 * 1024, ROOT_PATH . '/uploads/materials');
+            $file = upload_file('material_file', ['pdf', 'doc', 'docx', 'ppt', 'pptx'], 10 * 1024 * 1024, ROOT_PATH . '/uploads/materials');
 
             $stmt = $pdo->prepare('
                 INSERT INTO study_materials (subject_id, teacher_id, title, description, file_name)
@@ -125,7 +125,10 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
                                     <td><?= e($material['subject_name']) ?></td>
                                     <td><?= e($material['description']) ?></td>
                                     <td>
-                                        <a href="<?= BASE_URL . '/../uploads/materials/' . e($material['file_name']) ?>" target="_blank">Download</a>
+                                        <div class="inline-actions">
+                                            <a class="file-link" href="<?= BASE_URL ?>/open_file.php?type=material&file=<?= urlencode($material['file_name']) ?>" target="_blank">📄 View</a>
+                                            <a class="file-link" href="<?= BASE_URL . '/../uploads/materials/' . e($material['file_name']) ?>" download>⬇ Download</a>
+                                        </div>
                                     </td>
                                     <td><?= e(format_dt($material['created_at'])) ?></td>
                                     <td>

@@ -9,7 +9,16 @@ if (is_post()) {
 
     try {
         if ($action === 'create') {
-            $file = upload_file('assignment_file', ['pdf','doc','docx'], 5 * 1024 * 1024, ROOT_PATH . '/uploads/assignments');
+            if (empty($_FILES['assignment_file']['name'])) {
+                flash('danger', 'Assignment file is required. Please upload a file.');
+                redirect_to(BASE_URL . '/teacher/assignments.php');
+            }
+
+            $file = upload_file('assignment_file', ['pdf', 'doc', 'docx'], 5 * 1024 * 1024, ROOT_PATH . '/uploads/assignments');
+            if (!$file) {
+                flash('danger', 'File upload failed. Please try again.');
+                redirect_to(BASE_URL . '/teacher/assignments.php');
+            }
 
             $stmt = $pdo->prepare('
                 INSERT INTO assignments (subject_id, teacher_id, title, instructions, file_name, deadline, created_at)
@@ -32,7 +41,7 @@ if (is_post()) {
             $current->execute([$id, $teacherId]);
             $old = $current->fetch();
 
-            $file = upload_file('assignment_file', ['pdf','doc','docx'], 5 * 1024 * 1024, ROOT_PATH . '/uploads/assignments') ?: ($old['file_name'] ?? null);
+            $file = upload_file('assignment_file', ['pdf', 'doc', 'docx'], 5 * 1024 * 1024, ROOT_PATH . '/uploads/assignments') ?: ($old['file_name'] ?? null);
 
             $stmt = $pdo->prepare('
                 UPDATE assignments
@@ -108,7 +117,7 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
 
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Module</label>
+                        <label>Module <span class="required">*</span></label>
                         <select name="subject_id" required>
                             <?php foreach ($subjects as $s): ?>
                                 <option value="<?= (int)$s['id'] ?>" <?= ((int)($edit['subject_id'] ?? 0) === (int)$s['id']) ? 'selected' : '' ?>>
@@ -119,18 +128,19 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
                     </div>
 
                     <div class="form-group">
-                        <label>Title</label>
+                        <label>Title <span class="required">*</span></label>
                         <input type="text" name="title" required value="<?= e($edit['title'] ?? '') ?>">
                     </div>
 
                     <div class="form-group">
-                        <label>Due</label>
+                        <label>Due Date <span class="required">*</span></label>
                         <input type="date" name="deadline" required value="<?= !empty($edit['deadline']) ? e(date('Y-m-d', strtotime($edit['deadline']))) : '' ?>">
                     </div>
 
                     <div class="form-group">
-                        <label>File</label>
-                        <input type="file" name="assignment_file" accept=".pdf,.doc,.docx">
+                        <label>Assignment File <span class="required">*</span></label>
+                        <input type="file" name="assignment_file" accept=".pdf,.doc,.docx" <?= $edit ? '' : 'required' ?>>
+                        <small style="color: #6c757d;">PDF, DOC, DOCX files only. Maximum 5MB.</small>
                     </div>
                 </div>
 
@@ -158,7 +168,7 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
                             <th>Module</th>
                             <th>Due</th>
                             <th>Teacher</th>
-                            <th>File</th>
+                            <th>Assignment File</th>
                             <th>Submissions</th>
                             <th>Actions</th>
                         </tr>
@@ -173,9 +183,12 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
                                 <td><?= e($r['teacher_name']) ?></td>
                                 <td>
                                     <?php if ($r['file_name']): ?>
-                                        <a class="file-link" href="<?= BASE_URL . '/../uploads/assignments/' . e($r['file_name']) ?>" target="_blank">Open</a>
+                                        <div class="inline-actions">
+                                            <a class="file-link" href="<?= BASE_URL ?>/open_file.php?type=assignment&file=<?= urlencode($r['file_name']) ?>" target="_blank">📄 View</a>
+                                            <a class="file-link" href="<?= BASE_URL . '/../uploads/assignments/' . e($r['file_name']) ?>" download>⬇ Download</a>
+                                        </div>
                                     <?php else: ?>
-                                        -
+                                        <span class="subtle">No file</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -202,4 +215,5 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
         </div>
     </main>
 </div>
+
 <?php include dirname(dirname(__DIR__)) . '/includes/footer.php'; ?>

@@ -1,8 +1,13 @@
 <?php
 require_once dirname(dirname(__DIR__)) . '/includes/auth.php';
 require_role(['teacher']);
-$teacherId = (int)user()['id'];
 
+$teacherId = (int) user()['id'];
+
+// ============================================================
+// SECURITY: Only fetch students from teacher's assigned subjects
+// This prevents teachers from seeing students from other courses
+// ============================================================
 $stmt = $pdo->prepare('
     SELECT DISTINCT
         u.id,
