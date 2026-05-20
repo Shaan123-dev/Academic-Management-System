@@ -58,101 +58,117 @@ $pageTitle = 'Admin Dashboard | ' . APP_NAME;
 include dirname(dirname(__DIR__)) . '/includes/header.php';
 ?>
 <div class="dashboard-shell">
-<?php include dirname(dirname(__DIR__)) . '/includes/sidebar.php'; ?>
-<main class="main-panel">
-  <div class="dashboard-top">
-    <div class="dashboard-title">
-      <h1>Admin Dashboard</h1>
-      <p><?= e(current_datetime()) ?> • Welcome, <?= e(user()['name']) ?></p>
+  <?php include dirname(dirname(__DIR__)) . '/includes/sidebar.php'; ?>
+  <main class="main-panel">
+    <div class="dashboard-top">
+      <div class="dashboard-title">
+        <h1>Admin Dashboard</h1>
+        <p><?= e(current_datetime()) ?> • Welcome, <?= e(user()['name']) ?></p>
+      </div>
+      <div class="user-chip">👑 Admin Panel</div>
     </div>
-    <div class="user-chip">👑 Admin Panel</div>
-  </div>
 
-  <!-- Metric Cards - System Statistics -->
-  <div class="metric-grid">
-    <div class="metric-card"><div class="label">Students</div><div class="value"><?= (int)$stats['students'] ?></div><div class="subtext">Registered student accounts</div></div>
-    <div class="metric-card"><div class="label">Teachers</div><div class="value"><?= (int)$stats['teachers'] ?></div><div class="subtext">Active teaching staff</div></div>
-    <div class="metric-card"><div class="label">Assignments</div><div class="value"><?= (int)$stats['assignments'] ?></div><div class="subtext">Uploaded academic tasks</div></div>
-    <div class="metric-card"><div class="label">Announcements</div><div class="value"><?= (int)$stats['announcements'] ?></div><div class="subtext">Published notices</div></div>
-  </div>
+    <!-- Metric Cards - System Statistics -->
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="label">Students</div>
+        <div class="value"><?= (int)$stats['students'] ?></div>
+        <div class="subtext">Registered student accounts</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Teachers</div>
+        <div class="value"><?= (int)$stats['teachers'] ?></div>
+        <div class="subtext">Active teaching staff</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Assignments</div>
+        <div class="value"><?= (int)$stats['assignments'] ?></div>
+        <div class="subtext">Uploaded academic tasks</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Announcements</div>
+        <div class="value"><?= (int)$stats['announcements'] ?></div>
+        <div class="subtext">Published notices</div>
+      </div>
+    </div>
 
-  <div class="dashboard-grid">
+    <div class="dashboard-grid">
 
-    <!-- Quick Actions Panel -->
-    <div class="panel-card">
+      <!-- Quick Actions Panel -->
+      <div class="panel-card">
         <h3>Quick Actions</h3>
         <div class="quick-actions">
-            <a href="<?= BASE_URL ?>/admin/students.php"><span class="qa-emoji">🎓</span><span>Students</span></a>
-            <a href="<?= BASE_URL ?>/admin/teachers.php"><span class="qa-emoji">👨‍🏫</span><span>Teachers</span></a>
-            <a href="<?= BASE_URL ?>/admin/courses.php"><span class="qa-emoji">📚</span><span>Courses</span></a>
-            <a href="<?= BASE_URL ?>/admin/subjects.php"><span class="qa-emoji">📝</span><span>Subjects</span></a>
-            <a href="<?= BASE_URL ?>/admin/announcements.php"><span class="qa-emoji">📢</span><span>Announcements</span></a>
-            <a href="<?= BASE_URL ?>/admin/reports.php"><span class="qa-emoji">📊</span><span>Reports</span></a>
+          <a href="<?= BASE_URL ?>/admin/students.php"><span class="qa-emoji">🎓</span><span>Students</span></a>
+          <a href="<?= BASE_URL ?>/admin/teachers.php"><span class="qa-emoji">👨‍🏫</span><span>Teachers</span></a>
+          <a href="<?= BASE_URL ?>/admin/courses.php"><span class="qa-emoji">📚</span><span>Courses</span></a>
+          <a href="<?= BASE_URL ?>/admin/subjects.php"><span class="qa-emoji">📝</span><span>Subjects</span></a>
+          <a href="<?= BASE_URL ?>/admin/announcements.php"><span class="qa-emoji">📢</span><span>Announcements</span></a>
+          <a href="<?= BASE_URL ?>/admin/reports.php"><span class="qa-emoji">📊</span><span>Reports</span></a>
         </div>
-    </div>
+      </div>
 
-    <!-- Recent Announcements Panel -->
-    <div class="panel-card">
-      <h3>Recent Announcements</h3>
-      <div class="list-clean">
-        <?php foreach ($announcements as $item): ?>
-          <div class="list-item">
-            <strong><?= e($item['title']) ?></strong>
-            <span><?= e(mb_strimwidth($item['body'], 0, 90, '...')) ?> — <?= e(date('d M Y', strtotime($item['posted_at']))) ?></span>
-          </div>
-        <?php endforeach; ?>
+      <!-- Recent Announcements Panel -->
+      <div class="panel-card">
+        <h3>Recent Announcements</h3>
+        <div class="list-clean">
+          <?php foreach ($announcements as $item): ?>
+            <div class="list-item">
+              <strong><?= e($item['title']) ?></strong>
+              <span><?= e(mb_strimwidth($item['body'], 0, 90, '...')) ?> — <?= e(date('d M Y', strtotime($item['posted_at']))) ?></span>
+            </div>
+          <?php endforeach; ?>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- ============================================================ -->
-  <!-- DASHBOARD ANALYTICS SECTION - Charts Section                -->
-  <!-- ============================================================ -->
-  <div class="dashboard-analytics">
-    
-    <!-- Header with title and download button -->
-    <div class="analytics-header">
-      <h2>📊 Dashboard Analytics</h2>
-      <button class="download-analytics-btn">⬇ Download Chart</button>
-    </div>
-    
-    <!-- Two dropdowns: Trend selection and Chart type selection -->
-    <div class="analytics-controls">
-      <div class="analytics-control-group">
-        <label for="trendSelect">📈 Select Trend</label>
-        <select id="trendSelect">
-          <option value="attendance">📋 Attendance Trend (Last 6 Months)</option>
-          <option value="passfail">🎯 Pass vs Fail Ratio</option>
-          <option value="department">👥 Students per Department</option>
-        </select>
-      </div>
-      
-      <div class="analytics-control-group">
-        <label for="chartTypeSelect">📊 Chart Type</label>
-        <select id="chartTypeSelect">
-          <option value="line">Line Chart</option>
-          <option value="bar">Bar Chart</option>
-          <option value="doughnut">Doughnut Chart</option>
-        </select>
-      </div>
-    </div>
-    
-    <!-- Canvas where chart will be drawn -->
-    <div class="analytics-chart-container">
-      <canvas id="analyticsChart"></canvas>
-    </div>
-    
-    <!-- Dynamic note that changes based on selected trend -->
-    <div class="analytics-footer">
-      <p class="chart-note" id="chartNote">
-        <span class="note-badge">ℹ️</span> 
-        Select a trend and chart type above to visualize institutional data.
-      </p>
-    </div>
-  </div>
-  <!-- END OF CHARTS SECTION -->
+    <!-- ============================================================ -->
+    <!-- DASHBOARD ANALYTICS SECTION - Charts Section                -->
+    <!-- ============================================================ -->
+    <div class="dashboard-analytics">
 
-</main>
+      <!-- Header with title and download button -->
+      <div class="analytics-header">
+        <h2>📊 Dashboard Analytics</h2>
+        <button class="download-analytics-btn">⬇ Download Chart</button>
+      </div>
+
+      <!-- Two dropdowns: Trend selection and Chart type selection -->
+      <div class="analytics-controls">
+        <div class="analytics-control-group">
+          <label for="trendSelect">📈 Select Trend</label>
+          <select id="trendSelect">
+            <option value="attendance">📋 Attendance Trend (Last 6 Months)</option>
+            <option value="passfail">🎯 Pass vs Fail Ratio</option>
+            <option value="department">👥 Students per Department</option>
+          </select>
+        </div>
+
+        <div class="analytics-control-group">
+          <label for="chartTypeSelect">📊 Chart Type</label>
+          <select id="chartTypeSelect">
+            <option value="line">Line Chart</option>
+            <option value="bar">Bar Chart</option>
+            <option value="doughnut">Doughnut Chart</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Canvas where chart will be drawn -->
+      <div class="analytics-chart-container">
+        <canvas id="analyticsChart"></canvas>
+      </div>
+
+      <!-- Dynamic note that changes based on selected trend -->
+      <div class="analytics-footer">
+        <p class="chart-note" id="chartNote">
+          <span class="note-badge">ℹ️</span>
+          Select a trend and chart type above to visualize institutional data.
+        </p>
+      </div>
+    </div>
+    <!-- END OF CHARTS SECTION -->
+
+  </main>
 </div>
 
 <!-- Include Chart.js and html2canvas libraries -->
@@ -164,20 +180,20 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
 
 <!-- Pass data from PHP to JavaScript and initialize charts -->
 <script>
-// Prepare data object to pass to charts.js
-const chartDatabase = {
+  // Prepare data object to pass to charts.js
+  const chartDatabase = {
     attendanceMonths: <?= json_encode($attendanceMonths) ?>,
     attendanceRates: <?= json_encode($attendanceRates) ?>,
     passedCount: <?= json_encode($passedCount) ?>,
     failedCount: <?= json_encode($failedCount) ?>,
     departments: <?= json_encode($departments) ?>,
     departmentCounts: <?= json_encode($deptCounts) ?>
-};
+  };
 
-// Initialize dashboard analytics when page loads
-document.addEventListener('DOMContentLoaded', function() {
+  // Initialize dashboard analytics when page loads
+  document.addEventListener('DOMContentLoaded', function() {
     initDashboardAnalytics(chartDatabase);
-});
+  });
 </script>
 
 <?php include dirname(dirname(__DIR__)) . '/includes/footer.php'; ?>

@@ -10,11 +10,11 @@ $hideFooter = true;
 
 if (is_post()) {
     verify_csrf();
-    
+
     $otp = trim($_POST['otp'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
-    
+
     // Validate password strength
     $passwordErrors = validate_password_strength($password);
     if ($passwordErrors) {
@@ -23,17 +23,17 @@ if (is_post()) {
         }
         redirect_to(BASE_URL . '/reset_password.php');
     }
-    
+
     if ($otp === '' || $password === '' || $confirmPassword === '') {
         flash('danger', 'Please fill all fields.');
         redirect_to(BASE_URL . '/reset_password.php');
     }
-    
+
     if ($password !== $confirmPassword) {
         flash('danger', 'Passwords do not match.');
         redirect_to(BASE_URL . '/reset_password.php');
     }
-    
+
     // Find user by valid OTP
     $stmt = $pdo->prepare('
         SELECT id, otp_code, otp_attempts 
@@ -44,7 +44,7 @@ if (is_post()) {
     ');
     $stmt->execute();
     $users = $stmt->fetchAll();
-    
+
     $user = null;
     foreach ($users as $u) {
         if (verify_otp($otp, $u['otp_code'])) {
@@ -52,21 +52,21 @@ if (is_post()) {
             break;
         }
     }
-    
+
     if (!$user) {
         flash('danger', 'Invalid or expired OTP. Please request a new one.');
         redirect_to(BASE_URL . '/forgot_password.php');
     }
-    
+
     // Check if too many attempts
     if ($user['otp_attempts'] >= 3) {
         flash('danger', 'Too many invalid attempts. Please request a new OTP.');
         redirect_to(BASE_URL . '/forgot_password.php');
     }
-    
+
     // Update password and clear OTP
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-    
+
     $update = $pdo->prepare('
         UPDATE users
         SET password = ?, 
@@ -78,7 +78,7 @@ if (is_post()) {
         WHERE id = ?
     ');
     $update->execute([$hashedPassword, (int)$user['id']]);
-    
+
     flash('success', 'Password updated successfully. Please login with your new password.');
     redirect_to(BASE_URL . '/login.php');
 }
@@ -118,8 +118,8 @@ include dirname(__DIR__) . '/includes/header.php';
                     <label>New Password <span class="required">*</span></label>
                     <div style="position: relative;">
                         <input type="password" name="password" id="new_password" required style="padding-right: 45px; width: 100%;">
-                        <button type="button" onclick="togglePassword('new_password')" 
-                                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
+                        <button type="button" onclick="togglePassword('new_password')"
+                            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
                                     background: none; border: none; cursor: pointer; font-size: 18px; 
                                     padding: 0; margin: 0; color: #888;">
                             🔒
@@ -131,8 +131,8 @@ include dirname(__DIR__) . '/includes/header.php';
                     <label>Confirm Password <span class="required">*</span></label>
                     <div style="position: relative;">
                         <input type="password" name="confirm_password" id="confirm_password" required style="padding-right: 45px; width: 100%;">
-                        <button type="button" onclick="togglePassword('confirm_password')" 
-                                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
+                        <button type="button" onclick="togglePassword('confirm_password')"
+                            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
                                     background: none; border: none; cursor: pointer; font-size: 18px; 
                                     padding: 0; margin: 0; color: #888;">
                             🔒

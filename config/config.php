@@ -1,24 +1,26 @@
 <?php
+
 declare(strict_types=1);
 
 // ============================================================
 // SECURITY REQUIREMENT 3: Proper Session Security
 // ============================================================
-function set_secure_session_settings() {
+function set_secure_session_settings()
+{
     $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
     session_set_cookie_params([
-        'lifetime' => 0, 
+        'lifetime' => 0,
         'path' => '/',
-        'domain' => '', 
-        'secure' => $isSecure, 
-        'httponly' => true, 
+        'domain' => '',
+        'secure' => $isSecure,
+        'httponly' => true,
         'samesite' => 'Lax'
     ]);
 }
 
 set_secure_session_settings();
-if (session_status() === PHP_SESSION_NONE) { 
-    session_start(); 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
 define('SESSION_TIMEOUT_MINUTES', 30);
@@ -29,9 +31,12 @@ define('ROOT_PATH', dirname(__DIR__));
 // File Upload Configs
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
 define('ALLOWED_MIME_TYPES', [
-    'application/pdf', 'application/msword', 
+    'application/pdf',
+    'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'image/jpeg', 'image/png', 'image/webp',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation'
 ]);
@@ -48,7 +53,10 @@ define('SMTP_FROM_NAME', APP_NAME);
 
 // Database Connection
 date_default_timezone_set('Asia/Kathmandu');
-$dbHost = '127.0.0.1'; $dbName = 'ams_portal'; $dbUser = 'root'; $dbPass = '';
+$dbHost = '127.0.0.1';
+$dbName = 'ams_portal';
+$dbUser = 'root';
+$dbPass = '';
 
 try {
     $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
@@ -59,4 +67,3 @@ try {
 } catch (PDOException $e) {
     die("Database Connection Failed.");
 }
-?>

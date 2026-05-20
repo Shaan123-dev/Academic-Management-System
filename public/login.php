@@ -27,12 +27,12 @@ if (is_post()) {
         ');
         $stmt->execute([$email, $ip]);
         $attempts = (int)$stmt->fetchColumn();
-        
+
         if ($attempts >= 5) {
             flash('danger', 'Too many failed attempts. Please try again later.');
             redirect_to(BASE_URL . '/login.php');
         }
-        
+
         $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? AND status = "active" LIMIT 1');
         $stmt->execute([$email]);
         $found = $stmt->fetch();
@@ -40,10 +40,10 @@ if (is_post()) {
         if ($found && password_verify($password, $found['password'])) {
             $_SESSION['user'] = $found;
             regenerate_session();
-            
+
             $stmt = $pdo->prepare('DELETE FROM login_attempts WHERE email = ?');
             $stmt->execute([$email]);
-            
+
             flash('success', 'Login successful.');
             redirect_to(dashboard_path($found['role']));
         }
@@ -53,7 +53,7 @@ if (is_post()) {
             VALUES (?, ?, NOW())
         ');
         $stmt->execute([$email, $ip]);
-        
+
         $errors[] = 'Invalid email or password.';
     }
 
@@ -103,8 +103,8 @@ include dirname(__DIR__) . '/includes/header.php';
                     <label>Password <span class="required">*</span></label>
                     <div style="position: relative;">
                         <input type="password" name="password" id="login_password" required style="padding-right: 45px; width: 100%;">
-                        <button type="button" onclick="togglePassword('login_password')" 
-                                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
+                        <button type="button" onclick="togglePassword('login_password')"
+                            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
                                     background: none; border: none; cursor: pointer; font-size: 18px; 
                                     padding: 0; margin: 0; color: #888;">
                             🔒

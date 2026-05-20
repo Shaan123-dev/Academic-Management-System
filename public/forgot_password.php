@@ -8,7 +8,7 @@ $hideFooter = true;
 if (is_post()) {
     verify_csrf();
     $email = trim($_POST['email'] ?? '');
-    
+
     // ============================================================
     // STEP 1: Check if it's a Gmail address
     // ============================================================
@@ -16,14 +16,14 @@ if (is_post()) {
         flash('danger', 'Only Gmail addresses are allowed for password reset. Please use a @gmail.com email.');
         redirect_to(BASE_URL . '/forgot_password.php');
     }
-    
+
     // ============================================================
     // STEP 2: Check if email exists in database
     // ============================================================
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
     $stmt->execute([$email]);
     $found = $stmt->fetch();
-    
+
     // ============================================================
     // If email NOT registered, show error message
     // ============================================================
@@ -31,22 +31,22 @@ if (is_post()) {
         flash('danger', 'Email not registered in our system. Please contact admin or use a registered email.');
         redirect_to(BASE_URL . '/forgot_password.php');
     }
-    
+
     // ============================================================
     // Email is registered - proceed with OTP
     // ============================================================
-    
+
     // Rate limiting check
     if (!check_otp_rate_limit($pdo, $email)) {
         flash('danger', 'Too many requests. Please wait a few minutes before trying again.');
         redirect_to(BASE_URL . '/forgot_password.php');
     }
-    
+
     // Generate secure OTP
     $otp = generate_secure_otp();
     $hashedOtp = hash_otp($otp);
     $expiryTime = date('Y-m-d H:i:s', strtotime('+10 minutes'));
-    
+
     // Store hashed OTP in database
     $update = $pdo->prepare('
         UPDATE users 
@@ -59,10 +59,10 @@ if (is_post()) {
         WHERE id = ?
     ');
     $update->execute([$hashedOtp, $expiryTime, (int)$found['id']]);
-    
+
     // Send OTP via email
     $emailSent = send_otp_email($email, $otp);
-    
+
     // For debugging - log to file
     $logFile = ROOT_PATH . '/logs/otp_log.txt';
     if (!is_dir(dirname($logFile))) {
@@ -70,7 +70,7 @@ if (is_post()) {
     }
     $logEntry = date('Y-m-d H:i:s') . " - Forgot Password - To: $email - OTP: $otp - EmailSent: " . ($emailSent ? 'Yes' : 'No') . "\n";
     file_put_contents($logFile, $logEntry, FILE_APPEND);
-    
+
     // Success - redirect to reset password page
     flash('success', 'OTP sent to your email. Please check your inbox or spam folder.');
     redirect_to(BASE_URL . '/reset_password.php?email=' . urlencode($email));

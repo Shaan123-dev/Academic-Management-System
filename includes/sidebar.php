@@ -5,47 +5,47 @@ $base = BASE_URL . '/' . $role;
 $links = ['dashboard.php' => 'Dashboard'];
 
 if ($role === 'admin') {
-    $links += [
-        'students.php' => 'Manage Students',
-        'teachers.php' => 'Manage Teachers',
-        'users.php' => 'Manage Users',
-        'courses.php' => 'Courses',
-        'subjects.php' => 'Subjects',
-        'enrollments.php' => 'Enrollments',
-        'classes.php' => 'Classes',
-        'announcements.php' => 'Announcements',
-        'teacher_attendance.php' => 'Teacher Attendance',
-        'student_attendance.php' => 'Student Attendance',
-        'reports.php' => 'Reports',
-        'profile.php' => 'Profile',
-    ];
+  $links += [
+    'students.php' => 'Manage Students',
+    'teachers.php' => 'Manage Teachers',
+    'users.php' => 'Manage Users',
+    'courses.php' => 'Courses',
+    'subjects.php' => 'Subjects',
+    'enrollments.php' => 'Enrollments',
+    'classes.php' => 'Classes',
+    'teacher_attendance.php' => 'Teacher Attendance',
+    'student_attendance.php' => 'Student Attendance',
+    'announcements.php' => 'Announcements',
+    'reports.php' => 'Reports',
+    'profile.php' => 'Profile',
+  ];
 } elseif ($role === 'teacher') {
-    $links += [
-        'teacher_attendance.php' => 'My Attendance',
-        'attendance.php' => 'Student Attendance',
-        'classes.php' => 'Assigned Classes',
-        'students.php' => 'Class Students',
-        'assignments.php' => 'Assignments',
-        'materials.php' => 'Study Materials',
-        'results.php' => 'Results',
-        'announcements.php' => 'Announcements',
-        'schedule.php' => 'Schedule',
-        'digital_id.php' => 'Digital ID',
-        'settings.php' => 'Settings',
-    ];
+  $links += [
+    'teacher_attendance.php' => 'My Attendance',
+    'attendance.php' => 'Student Attendance',
+    'classes.php' => 'Assigned Classes',
+    'schedule.php' => 'Schedule',
+    'students.php' => 'Class Students',
+    'assignments.php' => 'Assignments',
+    'materials.php' => 'Study Materials',
+    'results.php' => 'Results',
+    'announcements.php' => 'Announcements',
+    'digital_id.php' => 'Digital ID',
+    'settings.php' => 'Settings',
+  ];
 } elseif ($role === 'student') {
-    $links += [
-        'attendance.php' => 'My Attendance',
-        'courses.php' => 'My Courses',
-        'subjects.php' => 'My Subjects',
-        'assignments.php' => 'Assignments',
-        'materials.php' => 'Study Materials',
-        'results.php' => 'Results',
-        'announcements.php' => 'Announcements',
-        'digital_id.php' => 'Digital ID',
-        'schedule.php' => 'Schedule',
-        'settings.php' => 'Settings',
-    ];
+  $links += [
+    'attendance.php' => 'My Attendance',
+    'courses.php' => 'My Courses',
+    'subjects.php' => 'My Subjects',
+    'schedule.php' => 'Schedule',
+    'assignments.php' => 'Assignments',
+    'materials.php' => 'Study Materials',
+    'results.php' => 'Results',
+    'announcements.php' => 'Announcements',
+    'digital_id.php' => 'Digital ID',
+    'settings.php' => 'Settings',
+  ];
 }
 ?>
 <aside class="sidebar">
