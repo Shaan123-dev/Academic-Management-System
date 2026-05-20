@@ -220,7 +220,7 @@ include dirname(dirname(__DIR__)) . '/includes/header.php';
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <!-- Include student charts module -->
-<script src="/Academic-Management-System/assets/js/student-charts.js"></script>
+<script src="<?= BASE_URL ?>/../assets/js/student-charts.js"></script>
 
 <!-- Pass data from PHP to JavaScript and initialize charts -->
 <script>

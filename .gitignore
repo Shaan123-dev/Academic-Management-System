@@ -6,7 +6,9 @@ composer.phar
 !/uploads/**/.gitkeep
 !/uploads/**/.htaccess
 
-/logs/
+/logs/*
+!/logs/.gitkeep
+
 *.log
 *.tmp
 /cache/
